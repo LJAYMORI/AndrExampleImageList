@@ -14,4 +14,19 @@ public class SearchImageJson {
     public String width;
     public String cp;
     public String cpname;
+
+    @Override
+    public String toString() {
+        return "SearchImageJson{" +
+                "pubDate='" + pubDate + '\'' +
+                ", title='" + title + '\'' +
+                ", thumbnail='" + thumbnail + '\'' +
+                ", image='" + image + '\'' +
+                ", link='" + link + '\'' +
+                ", height='" + height + '\'' +
+                ", width='" + width + '\'' +
+                ", cp='" + cp + '\'' +
+                ", cpname='" + cpname + '\'' +
+                '}';
+    }
 }

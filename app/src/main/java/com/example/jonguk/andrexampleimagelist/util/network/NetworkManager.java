@@ -15,7 +15,7 @@ import rx.schedulers.Schedulers;
 
 public class NetworkManager {
     private static final String TAG = "NetworkManager";
-    private static final String BASE_URL = "https://api.daum.net/";
+    private static final String BASE_URL = "https://apis.daum.net/";
 
     private static Retrofit sInstance;
 
