@@ -7,6 +7,7 @@ import android.util.Log;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
 
+
 /**
  * Created by Jonguk on 2017. 3. 28..
  */

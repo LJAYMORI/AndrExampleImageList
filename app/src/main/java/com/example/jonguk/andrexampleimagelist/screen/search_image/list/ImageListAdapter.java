@@ -19,13 +19,18 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
 
     private final List<SearchImageJson> mItems = new LinkedList<>();
 
-    public void clear() {
-        mItems.clear();
+    public void initItems(List<SearchImageJson> list) {
+        clear();
+        addItems(list);
     }
 
     public void addItems(List<SearchImageJson> list) {
         mItems.addAll(list);
         notifyDataSetChanged();
+    }
+
+    public void clear() {
+        mItems.clear();
     }
 
     @Override
