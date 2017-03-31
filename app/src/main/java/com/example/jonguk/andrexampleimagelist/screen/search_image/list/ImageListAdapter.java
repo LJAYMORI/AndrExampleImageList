@@ -20,8 +20,9 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
     private final List<SearchImageJson> mItems = new LinkedList<>();
 
     public void initItems(List<SearchImageJson> list) {
-        clear();
-        addItems(list);
+        mItems.clear();
+        mItems.addAll(list);
+        notifyDataSetChanged();
     }
 
     public void addItems(List<SearchImageJson> list) {
@@ -31,6 +32,7 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
 
     public void clear() {
         mItems.clear();
+        notifyDataSetChanged();
     }
 
     @Override

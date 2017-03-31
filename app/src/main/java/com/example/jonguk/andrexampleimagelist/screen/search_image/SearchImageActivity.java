@@ -1,9 +1,9 @@
 package com.example.jonguk.andrexampleimagelist.screen.search_image;
 
 import android.os.Bundle;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.Editable;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -19,19 +19,29 @@ import com.jakewharton.rxbinding.widget.RxTextView;
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
+import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
 import rx.schedulers.Schedulers;
+import rx.subscriptions.CompositeSubscription;
 
 public class SearchImageActivity extends BaseActivity {
 
     private static final String TAG = "SearchImageActivity";
 
-    @BindView(R.id.recycler_view) RecyclerView mRecyclerView;
-    @BindView(R.id.appbar_search_input) EditText mSearchInputView;
-    @BindView(R.id.appbar_clear) View mSearchInputClearView;
-    @BindView(R.id.progress_layout) View mProgressLayout;
+    @BindView(R.id.coordinator_layout)
+    CoordinatorLayout mLayout;
+    @BindView(R.id.recycler_view)
+    RecyclerView mRecyclerView;
+    @BindView(R.id.appbar_search_input)
+    EditText mSearchInputView;
+    @BindView(R.id.appbar_clear)
+    View mSearchInputClearView;
+    @BindView(R.id.progress_layout)
+    View mProgressLayout;
 
     private ImageListAdapter mAdapter;
+
+    private final CompositeSubscription mCompositeSubscription = new CompositeSubscription();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,34 +52,36 @@ public class SearchImageActivity extends BaseActivity {
         mAdapter = new ImageListAdapter();
         mRecyclerView.setAdapter(mAdapter);
 
-        RxView.clicks(mSearchInputClearView)
+        mCompositeSubscription.add(RxView.clicks(mSearchInputClearView)
                 .takeUntil(destroySignal())
                 .filter(v -> mSearchInputView != null)
-                .subscribe(v -> mSearchInputView.setText(""), err -> {});
+                .subscribe(v -> mSearchInputView.setText(""), err ->
+                        Log.w(TAG, "RxView.clicks - searchInputClearView", err)));
 
-        /*RxTextView.editorActionEvents(mSearchInputView)
+        Observable<String> textChangeObs = RxTextView.afterTextChangeEvents(mSearchInputView)
+                .takeUntil(destroySignal())
+                .debounce(1, TimeUnit.SECONDS)
+                .filter(event -> event != null && event.editable() != null)
+                .map(event -> event.editable().toString());
+
+        Observable<String> editorActionObs = RxTextView.editorActionEvents(mSearchInputView)
                 .takeUntil(destroySignal())
                 .filter(action -> action.actionId() == EditorInfo.IME_ACTION_SEARCH)
-                .map(event -> event.view().getText().toString())
-                .subscribe(this::requestImage, err ->
-                        Log.w(TAG, "RxTextView.editorActionEvents - ime_action_search", err));*/
+                .map(event -> event.view().getText().toString());
 
-        RxTextView.afterTextChangeEvents(mSearchInputView)
+        mCompositeSubscription.add(Observable.amb(textChangeObs, editorActionObs)
                 .takeUntil(destroySignal())
                 .observeOn(Schedulers.io())
-                .debounce(1, TimeUnit.SECONDS)
+                .filter(query -> !TextUtils.isEmpty(query))
                 .distinctUntilChanged()
-                .map(event -> {
-                    Editable editable = event.editable();
-                    return editable != null ? editable.toString() : "";
-                })
-                .filter(s -> !TextUtils.isEmpty(s))
-                .flatMap(event -> RxTextView.editorActionEvents(mSearchInputView)
-                        .observeOn(AndroidSchedulers.mainThread())
-                        .filter(action -> action.actionId() == EditorInfo.IME_ACTION_SEARCH)
-                        .map(action -> action.view().getText().toString()).filter(q -> !TextUtils.isEmpty(q)))
                 .subscribe(this::requestImage, err ->
-                        Log.w(TAG, "RxTextView.afterTextChangeEvents - searchInputView", err));
+                        Log.w(TAG, "change, editorAction", err)));
+    }
+
+    @Override
+    protected void onDestroy() {
+        mCompositeSubscription.unsubscribe();
+        super.onDestroy();
     }
 
     private void requestImage(String query) {
@@ -83,8 +95,17 @@ public class SearchImageActivity extends BaseActivity {
                 .map(response -> response.channel.item)
                 .distinctUntilChanged()
                 .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(list -> {
+                    if (list == null || list.size() < 1) {
+                        showSnackBar(mLayout, getStringWithoutException(R.string.no_item));
+                    }
+                })
                 .doOnCompleted(() -> mProgressLayout.setVisibility(View.GONE))
-                .doOnError(err -> mProgressLayout.setVisibility(View.GONE))
+                .doOnError(err -> {
+                    mProgressLayout.setVisibility(View.GONE);
+                    showSnackBar(mLayout, getStringWithoutException(R.string.search_fail),
+                            getStringWithoutException(R.string.retry), v -> requestImage(query));
+                })
                 .subscribe(mAdapter::addItems, err -> Log.w(TAG, "imageRequest", err));
     }
 }

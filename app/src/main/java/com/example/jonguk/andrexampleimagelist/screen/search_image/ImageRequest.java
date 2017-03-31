@@ -23,7 +23,7 @@ public class ImageRequest extends BaseRequest {
     }
 
     static Observable<SearchImageResponseJson> images(Resources res, String query) {
-        return createRequest(ApiService.class)
-                .images(res.getString(R.string.api_key_daum_public), query, "json");
+        return Observable.defer(() -> createRequest(ApiService.class)
+                .images(res.getString(R.string.api_key_daum_public), query, "json"));
     }
 }

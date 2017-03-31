@@ -44,7 +44,7 @@ public class BaseActivity extends RxActivity {
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
     }
 
-    protected void showSnackbar(View view, String msg) {
+    protected void showSnackBar(View view, String msg) {
         if (view != null) {
             mSnackbar = Snackbar.make(view, msg, Snackbar.LENGTH_LONG);
             mSnackbar.show();
