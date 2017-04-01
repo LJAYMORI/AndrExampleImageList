@@ -1,9 +1,12 @@
 package com.example.jonguk.andrexampleimagelist.json.search_image;
 
+import org.parceler.Parcel;
+
 /**
  * Created by Jonguk on 2017. 3. 28..
  */
 
+@Parcel
 public class SearchImageJson {
     public String pubDate;
     public String title;
@@ -14,6 +17,8 @@ public class SearchImageJson {
     public String width;
     public String cp;
     public String cpname;
+
+    public SearchImageJson() {}
 
     @Override
     public String toString() {

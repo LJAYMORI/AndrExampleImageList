@@ -21,6 +21,8 @@ import com.jakewharton.rxbinding.support.v7.widget.RxRecyclerView;
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
 
+import org.parceler.Parcels;
+
 import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
@@ -31,6 +33,11 @@ public class SearchImageActivity extends BaseActivity {
 
     private static final String TAG = "SearchImageActivity";
 
+    private static final String KEY_LAYOUT_MANAGER = "layout_manager";
+    private static final String KEY_ADAPTER_ITEMS = "adapter_items";
+    private static final String KEY_SEARCH_QUERY = "search_query";
+    private static final String KEY_SEARCH_PAGE_NO = "search_page_no";
+
     @BindView(R.id.coordinator_layout)
     CoordinatorLayout mLayout;
     @BindView(R.id.recycler_view)
@@ -39,11 +46,14 @@ public class SearchImageActivity extends BaseActivity {
     EditText mSearchInputView;
     @BindView(R.id.appbar_clear)
     View mSearchInputClearView;
-    @BindView(R.id.progress_layout)
+    @BindView(R.id.progress_view)
     View mProgressLayout;
 
     private ImageListAdapter mAdapter;
+    private LinearLayoutManager mLayoutManager;
+
     private SearchImageRequestHelper mSearchRequestHelper;
+
     private final CompositeSubscription mCompositeSubscription = new CompositeSubscription();
 
     @Override
@@ -51,34 +61,46 @@ public class SearchImageActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        LinearLayoutManager layoutManager = new LinearLayoutManager(this);
-        mRecyclerView.setLayoutManager(layoutManager);
+        mLayoutManager = new LinearLayoutManager(this);
         mAdapter = new ImageListAdapter();
-        mRecyclerView.setAdapter(mAdapter);
+        mSearchRequestHelper = new SearchImageRequestHelper(this, destroySignal());
 
-        mSearchRequestHelper = new SearchImageRequestHelper(this, mAdapter, destroySignal());
+        if (savedInstanceState == null) {
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            mRecyclerView.setAdapter(mAdapter);
+        } else {
+            mLayoutManager.onRestoreInstanceState(savedInstanceState.getParcelable(KEY_LAYOUT_MANAGER));
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            mAdapter.initItems(Parcels.unwrap(savedInstanceState.getParcelable(KEY_ADAPTER_ITEMS)));
+            mRecyclerView.setAdapter(mAdapter);
+            mSearchRequestHelper.setQueryAndPageNo(savedInstanceState.getString(KEY_SEARCH_QUERY),
+                    savedInstanceState.getInt(KEY_SEARCH_PAGE_NO));
+        }
 
         // observe complete searching
-        mSearchRequestHelper.noItemsObservable()
+        mCompositeSubscription.add(mSearchRequestHelper.noItemsObservable()
                 .takeUntil(destroySignal())
                 .filter(hasNoItems -> hasNoItems)
                 .observeOn(ThreadHelper.mainThread())
                 .subscribe(b ->
                         showSnackBar(mLayout, getStringWithoutException(R.string.search_complete)),
-                        err -> Log.w(TAG, "SearchRequestHelper.noItemsObservable", err));
+                        err -> Log.w(TAG, "SearchRequestHelper.noItemsObservable", err)));
 
         // observe scroll event
         mCompositeSubscription.add(RxRecyclerView.scrollEvents(mRecyclerView)
                 .takeUntil(destroySignal())
                 .map(RecyclerViewScrollEvent::dy)
                 .filter(dy -> dy > 0)
-                .map(dy -> layoutManager.findLastVisibleItemPosition() + 2)
+                .map(dy -> mLayoutManager.findLastVisibleItemPosition() + 2)
                 .distinctUntilChanged()
                 .filter(position -> position > mAdapter.getItemCount())
                 .subscribe(position -> mSearchRequestHelper.nextPageRequest(
                         // handle error
                         new HttpErrorHandler((code, msg) ->
-                                showSnackBar(mLayout, "code:" + code + "message:" + msg), 409)),
+                                showSnackBar(mLayout, "code:" + code + ", message:" + msg), 409),
+
+                        // handle result
+                        mAdapter::addItems),
 
                         err -> Log.w(TAG, "RxRecyclerView.scrollEvents", err)));
 
@@ -104,11 +126,13 @@ public class SearchImageActivity extends BaseActivity {
         mCompositeSubscription.add(Observable.amb(textChangeObs, editorActionObs)
                 .takeUntil(destroySignal())
                 .observeOn(ThreadHelper.io())
-                .filter(query -> !TextUtils.isEmpty(query))
-                .doOnSubscribe(() -> mRecyclerView.scrollToPosition(0))
+                .filter(query -> !TextUtils.isEmpty(query) && !query.equals(mSearchRequestHelper.getQuery()))
                 .subscribe(query -> mSearchRequestHelper.firstPageRequest(query,
                         // handle before searching
-                        () -> mProgressLayout.setVisibility(View.VISIBLE),
+                        () -> {
+                            mAdapter.clear();
+                            mProgressLayout.setVisibility(View.VISIBLE);
+                        },
 
                         // handle complete searching
                         () -> {
@@ -122,7 +146,10 @@ public class SearchImageActivity extends BaseActivity {
                             showSnackBar(mLayout, "code:" + code + ", msg:" + msg,
                                     getStringWithoutException(R.string.retry),
                                     v -> mSearchRequestHelper.retry());
-                        })),
+                        }),
+
+                        // handle result
+                        mAdapter::initItems),
 
                         err -> Log.w(TAG, "changedText and search action", err)));
     }
@@ -133,4 +160,12 @@ public class SearchImageActivity extends BaseActivity {
         super.onDestroy();
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putParcelable(KEY_LAYOUT_MANAGER, mLayoutManager.onSaveInstanceState());
+        outState.putParcelable(KEY_ADAPTER_ITEMS, Parcels.wrap(mAdapter.getItems()));
+        outState.putString(KEY_SEARCH_QUERY, mSearchRequestHelper.getQuery());
+        outState.putInt(KEY_SEARCH_PAGE_NO, mSearchRequestHelper.getPageNo());
+    }
 }

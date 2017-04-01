@@ -33,28 +33,31 @@ dependencies {
     testCompile 'junit:junit:4.12'
 
     // Google support
-    compile "com.android.support:appcompat-v7:$rootProject.supportPackageVersion"
-    compile "com.android.support:design:$rootProject.supportPackageVersion"
-    compile "com.android.support:palette-v7:$rootProject.supportPackageVersion"
+    compile "com.android.support:appcompat-v7:${rootProject.supportPackageVersion}"
+    compile "com.android.support:design:${rootProject.supportPackageVersion}"
+    compile "com.android.support:palette-v7:${rootProject.supportPackageVersion}"
     compile 'com.google.code.gson:gson:2.8.0'
 
     // Rx
     compile 'io.reactivex:rxandroid:1.2.1'
-    compile "com.jakewharton.rxbinding:rxbinding:$rootProject.rxBindingVersion"
-    compile "com.jakewharton.rxbinding:rxbinding-support-v4:$rootProject.rxBindingVersion"
-    compile "com.jakewharton.rxbinding:rxbinding-recyclerview-v7:$rootProject.rxBindingVersion"
+    compile "com.jakewharton.rxbinding:rxbinding:${rootProject.rxBindingVersion}"
+    compile "com.jakewharton.rxbinding:rxbinding-support-v4:${rootProject.rxBindingVersion}"
+    compile "com.jakewharton.rxbinding:rxbinding-recyclerview-v7:${rootProject.rxBindingVersion}"
 
     // Retrofit
-    compile "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"
-    compile "com.squareup.retrofit2:converter-gson:$rootProject.retrofitVersion"
-    compile "com.squareup.retrofit2:adapter-rxjava:$rootProject.retrofitVersion"
+    compile "com.squareup.retrofit2:retrofit:${rootProject.retrofitVersion}"
+    compile "com.squareup.retrofit2:converter-gson:${rootProject.retrofitVersion}"
+    compile "com.squareup.retrofit2:adapter-rxjava:${rootProject.retrofitVersion}"
     compile 'com.squareup.okhttp3:logging-interceptor:3.4.1'
 
     // Image Loader
     compile 'com.facebook.fresco:fresco:1.2.0'
 
     // Butter knife
-    compile "com.jakewharton:butterknife:$rootProject.butterknifeVersion"
-    apt "com.jakewharton:butterknife-compiler:$rootProject.butterknifeVersion"
+    compile "com.jakewharton:butterknife:${rootProject.butterknifeVersion}"
+    apt "com.jakewharton:butterknife-compiler:${rootProject.butterknifeVersion}"
 
+    // Parceler
+    compile "org.parceler:parceler-api:${rootProject.parcelerVersion}"
+    apt "org.parceler:parceler:${rootProject.parcelerVersion}"
 }
