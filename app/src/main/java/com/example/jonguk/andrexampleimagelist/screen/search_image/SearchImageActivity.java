@@ -38,6 +38,8 @@ public class SearchImageActivity extends BaseActivity {
     private static final String KEY_SEARCH_QUERY = "search_query";
     private static final String KEY_SEARCH_PAGE_NO = "search_page_no";
 
+    private static final int NEXT_PAGE_POSITION = 3;
+
     @BindView(R.id.coordinator_layout)
     CoordinatorLayout mLayout;
     @BindView(R.id.recycler_view)
@@ -73,8 +75,8 @@ public class SearchImageActivity extends BaseActivity {
             mRecyclerView.setLayoutManager(mLayoutManager);
             mAdapter.initItems(Parcels.unwrap(savedInstanceState.getParcelable(KEY_ADAPTER_ITEMS)));
             mRecyclerView.setAdapter(mAdapter);
-            mSearchRequestHelper.setQueryAndPageNo(savedInstanceState.getString(KEY_SEARCH_QUERY),
-                    savedInstanceState.getInt(KEY_SEARCH_PAGE_NO));
+            mSearchRequestHelper.setQueryAndPageNo(savedInstanceState.getString(KEY_SEARCH_QUERY, ""),
+                    savedInstanceState.getInt(KEY_SEARCH_PAGE_NO, 1));
         }
 
         // observe complete searching
@@ -91,7 +93,7 @@ public class SearchImageActivity extends BaseActivity {
                 .takeUntil(destroySignal())
                 .map(RecyclerViewScrollEvent::dy)
                 .filter(dy -> dy > 0)
-                .map(dy -> mLayoutManager.findLastVisibleItemPosition() + 2)
+                .map(dy -> mLayoutManager.findLastVisibleItemPosition() + NEXT_PAGE_POSITION)
                 .distinctUntilChanged()
                 .filter(position -> position > mAdapter.getItemCount())
                 .subscribe(position -> mSearchRequestHelper.nextPageRequest(
@@ -125,27 +127,27 @@ public class SearchImageActivity extends BaseActivity {
 
         mCompositeSubscription.add(Observable.amb(textChangeObs, editorActionObs)
                 .takeUntil(destroySignal())
+                .onBackpressureBuffer()
                 .observeOn(ThreadHelper.io())
-                .filter(query -> !TextUtils.isEmpty(query) && !query.equals(mSearchRequestHelper.getQuery()))
+                .filter(query -> !TextUtils.isEmpty(query) &&
+                        !query.equals(mSearchRequestHelper.getQuery()))
                 .subscribe(query -> mSearchRequestHelper.firstPageRequest(query,
-                        // handle before searching
+                        // handle before search
                         () -> {
                             mAdapter.clear();
                             mProgressLayout.setVisibility(View.VISIBLE);
                         },
 
-                        // handle complete searching
+                        // handle complete search
                         () -> {
                             mProgressLayout.setVisibility(View.GONE);
                             KeyboardUtils.hide(mSearchInputView);
                         },
 
-                        // handle error searching
+                        // handle error search
                         new HttpErrorHandler((code, msg) -> {
                             mProgressLayout.setVisibility(View.GONE);
-                            showSnackBar(mLayout, "code:" + code + ", msg:" + msg,
-                                    getStringWithoutException(R.string.retry),
-                                    v -> mSearchRequestHelper.retry());
+                            showSnackBar(mLayout, "code:" + code + ", msg:" + msg);
                         }),
 
                         // handle result

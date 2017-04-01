@@ -99,11 +99,8 @@ class SearchImageRequestHelper {
                             mInRequestSubject.onNext(false);
                         })
                         .doOnNext(list -> {
-                            mNoItemsSubject.onNext(list == null || list.size() < 1);
-                            mInRequestSubject.onNext(false);
-                        })
-                        .doOnCompleted(() -> {
                             setQueryAndPageNo(query, pageNo);
+                            mNoItemsSubject.onNext(list == null || list.size() < 1);
                             mInRequestSubject.onNext(false);
                         });
             }
