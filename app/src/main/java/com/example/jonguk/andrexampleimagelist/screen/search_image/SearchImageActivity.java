@@ -63,7 +63,8 @@ public class SearchImageActivity extends BaseActivity {
                 .takeUntil(destroySignal())
                 .filter(hasNoItems -> hasNoItems)
                 .observeOn(ThreadHelper.mainThread())
-                .subscribe(b -> showToast(getStringWithoutException(R.string.search_complete)),
+                .subscribe(b ->
+                        showSnackBar(mLayout, getStringWithoutException(R.string.search_complete)),
                         err -> Log.w(TAG, "SearchRequestHelper.noItemsObservable", err));
 
         // observe scroll event

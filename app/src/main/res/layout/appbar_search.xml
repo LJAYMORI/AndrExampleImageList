@@ -30,7 +30,7 @@
 				android:inputType="text"
 				android:background="@null"
 				android:textColor="@android:color/white"
-				android:textColorHint="@color/colorAccent"
+				android:textColorHint="@color/search_input_box_hint"
 				android:hint="@string/search_hint"/>
 
 			<View
