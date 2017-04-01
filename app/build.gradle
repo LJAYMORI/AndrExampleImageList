@@ -39,9 +39,10 @@ dependencies {
     compile 'com.google.code.gson:gson:2.8.0'
 
     // Rx
-    compile "io.reactivex:rxandroid:1.2.1"
-    compile "com.jakewharton.rxbinding:rxbinding:1.0.0"
-    compile "com.jakewharton.rxbinding:rxbinding-support-v4:1.0.0"
+    compile 'io.reactivex:rxandroid:1.2.1'
+    compile "com.jakewharton.rxbinding:rxbinding:$rootProject.rxBindingVersion"
+    compile "com.jakewharton.rxbinding:rxbinding-support-v4:$rootProject.rxBindingVersion"
+    compile "com.jakewharton.rxbinding:rxbinding-recyclerview-v7:$rootProject.rxBindingVersion"
 
     // Retrofit
     compile "com.squareup.retrofit2:retrofit:$rootProject.retrofitVersion"

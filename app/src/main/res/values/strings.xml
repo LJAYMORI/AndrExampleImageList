@@ -1,7 +1,8 @@
 <resources>
   <string name="app_name">AndrExampleImageList</string>
   <string name="search_hint">Input query..</string>
-  <string name="no_item">No search results</string>
+  <string name="no_results">No search results</string>
   <string name="search_fail">Fail searching image...</string>
   <string name="retry">Retry</string>
+  <string name="search_complete">Finished searching</string>
 </resources>

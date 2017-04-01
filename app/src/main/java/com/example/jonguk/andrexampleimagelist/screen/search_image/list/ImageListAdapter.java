@@ -1,5 +1,6 @@
 package com.example.jonguk.andrexampleimagelist.screen.search_image.list;
 
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -19,13 +20,19 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
 
     private final List<SearchImageJson> mItems = new LinkedList<>();
 
-    public void initItems(List<SearchImageJson> list) {
+    private String mQuery;
+
+    public void setQuery(@NonNull String query) {
+        this.mQuery = query;
+    }
+
+    public void initItems(@NonNull List<SearchImageJson> list) {
         mItems.clear();
         mItems.addAll(list);
         notifyDataSetChanged();
     }
 
-    public void addItems(List<SearchImageJson> list) {
+    public void addItems(@NonNull List<SearchImageJson> list) {
         mItems.addAll(list);
         notifyDataSetChanged();
     }
