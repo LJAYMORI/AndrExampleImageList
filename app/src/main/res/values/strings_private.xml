@@ -2,4 +2,5 @@
 <resources>
   <string name="api_key_daum">a48cbffc4ccea55efdfb2f962b7b976f</string>
   <string name="api_key_daum_public">2731277babde3300a17ce0358484f599</string>
+  <string name="api_key_daum_public2">a7ff953808564acab24d1931591aac1e</string>
 </resources>

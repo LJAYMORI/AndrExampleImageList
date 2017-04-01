@@ -7,14 +7,11 @@ import android.util.Log;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
 
-/**
- * Created by Jonguk on 2017. 3. 28..
- */
 
 public class RxActivity extends AppCompatActivity {
     private static final String TAG = "RxActivity";
 
-    private enum ActivityLifecycleEvent {
+    public enum ActivityLifecycleEvent {
         CREATE(0), DESTROY(5),
         START(1), STOP(4),
         RESUME(2), PAUSE(3);

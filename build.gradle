@@ -29,4 +29,5 @@ ext {
     supportPackageVersion = '25.3.0'
     retrofitVersion = '2.2.0'
     butterknifeVersion = '8.5.1'
+    rxBindingVersion = '1.0.0'
 }

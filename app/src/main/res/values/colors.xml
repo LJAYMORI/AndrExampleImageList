@@ -3,4 +3,8 @@
   <color name="colorPrimary">#C62828</color>
   <color name="colorPrimaryDark">#B71C1C</color>
   <color name="colorAccent">#7D95B3</color>
+
+  <color name="image_placeholder">#b2b2b2</color>
+  <color name="divider_background">@android:color/white</color>
+  <color name="search_input_box_hint">#e0e0e0</color>
 </resources>
