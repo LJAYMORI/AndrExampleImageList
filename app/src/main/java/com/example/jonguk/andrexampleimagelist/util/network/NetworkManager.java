@@ -13,7 +13,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * Created by Jonguk on 2017. 3. 28..
  */
 
-public class NetworkManager {
+class NetworkManager {
     private static final String TAG = "NetworkManager";
     private static final String BASE_URL = "https://apis.daum.net/";
 
@@ -21,7 +21,7 @@ public class NetworkManager {
 
     private NetworkManager(){}
 
-    public static Retrofit getInstance() {
+    static Retrofit getInstance() {
         if (sInstance == null) {
             OkHttpClient.Builder client = new OkHttpClient.Builder();
             HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();

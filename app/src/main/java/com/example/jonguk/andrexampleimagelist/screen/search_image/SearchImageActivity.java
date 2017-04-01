@@ -13,6 +13,8 @@ import android.widget.EditText;
 import com.example.jonguk.andrexampleimagelist.R;
 import com.example.jonguk.andrexampleimagelist.common.activity.BaseActivity;
 import com.example.jonguk.andrexampleimagelist.screen.search_image.list.ImageListAdapter;
+import com.example.jonguk.andrexampleimagelist.util.keyboard.KeyboardUtils;
+import com.example.jonguk.andrexampleimagelist.util.network.HttpErrorHandler;
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
 import com.jakewharton.rxbinding.support.v7.widget.RecyclerViewScrollEvent;
 import com.jakewharton.rxbinding.support.v7.widget.RxRecyclerView;
@@ -73,19 +75,20 @@ public class SearchImageActivity extends BaseActivity {
                 .distinctUntilChanged()
                 .filter(position -> position > mAdapter.getItemCount())
                 .subscribe(position -> mSearchRequestHelper.nextPageRequest(
-                        () -> {},
-                        () -> {},
-                        () -> showSnackBar(mLayout, "scroll?")),
+                        // handle error
+                        new HttpErrorHandler((code, msg) ->
+                                showSnackBar(mLayout, "code:" + code + "message:" + msg), 409)),
+
                         err -> Log.w(TAG, "RxRecyclerView.scrollEvents", err)));
 
-        // observe searching keyword clear
+        // observe clear searching query
         mCompositeSubscription.add(RxView.clicks(mSearchInputClearView)
                 .takeUntil(destroySignal())
                 .filter(v -> mSearchInputView != null)
                 .subscribe(v -> mSearchInputView.setText(""), err ->
                         Log.w(TAG, "RxView.clicks - searchInputClearView", err)));
 
-        // observe searching keyword changing and searching action
+        // observe query changed event and searching action
         Observable<String> textChangeObs = RxTextView.afterTextChangeEvents(mSearchInputView)
                 .takeUntil(destroySignal())
                 .debounce(1, TimeUnit.SECONDS)
@@ -103,11 +106,24 @@ public class SearchImageActivity extends BaseActivity {
                 .filter(query -> !TextUtils.isEmpty(query))
                 .doOnSubscribe(() -> mRecyclerView.scrollToPosition(0))
                 .subscribe(query -> mSearchRequestHelper.firstPageRequest(query,
+                        // handle before searching
                         () -> mProgressLayout.setVisibility(View.VISIBLE),
-                        () -> mProgressLayout.setVisibility(View.GONE),
-                        () -> showSnackBar(mLayout, getStringWithoutException(R.string.search_fail),
-                                getStringWithoutException(R.string.retry),
-                                v -> mSearchRequestHelper.retry())), err -> {}));
+
+                        // handle complete searching
+                        () -> {
+                            mProgressLayout.setVisibility(View.GONE);
+                            KeyboardUtils.hide(mSearchInputView);
+                        },
+
+                        // handle error searching
+                        new HttpErrorHandler((code, msg) -> {
+                            mProgressLayout.setVisibility(View.GONE);
+                            showSnackBar(mLayout, "code:" + code + ", msg:" + msg,
+                                    getStringWithoutException(R.string.retry),
+                                    v -> mSearchRequestHelper.retry());
+                        })),
+
+                        err -> Log.w(TAG, "changedText and search action", err)));
     }
 
     @Override

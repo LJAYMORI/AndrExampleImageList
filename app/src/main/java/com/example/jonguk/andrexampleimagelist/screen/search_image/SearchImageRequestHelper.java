@@ -13,6 +13,7 @@ import java.util.List;
 
 import rx.Observable;
 import rx.functions.Action0;
+import rx.functions.Action1;
 import rx.subjects.BehaviorSubject;
 
 /**
@@ -42,27 +43,22 @@ class SearchImageRequestHelper {
     void firstPageRequest(String query,
                           Action0 preCallback,
                           Action0 completeCallback,
-                          Action0 errorCallback) {
+                          Action1<Throwable> errorCallback) {
 
         request(query, 1).takeUntil(mDestroySignal)
                 .doOnSubscribe(preCallback)
                 .subscribeOn(ThreadHelper.mainThread())
                 .observeOn(ThreadHelper.mainThread())
                 .doOnCompleted(completeCallback)
-                .doOnError(err -> errorCallback.call())
+                .doOnError(errorCallback)
                 .subscribe(mAdapter::initItems, err -> Log.w(TAG, "firstPageRequest", err));
     }
 
-    void nextPageRequest(Action0 preCallback,
-                         Action0 completeCallback,
-                         Action0 errorCallback) {
-
+    void nextPageRequest(Action1<Throwable> errorCallback) {
         request(mQuery, mPageNo + 1).takeUntil(mDestroySignal)
-                .doOnSubscribe(preCallback)
                 .subscribeOn(ThreadHelper.mainThread())
                 .observeOn(ThreadHelper.mainThread())
-                .doOnCompleted(completeCallback)
-                .doOnError(err -> errorCallback.call())
+                .doOnError(errorCallback)
                 .subscribe(mAdapter::addItems, err ->
                         Log.w(TAG, "nextPageRequest - query :" + mQuery + ", pageNo:" + mPageNo,
                                 err));
