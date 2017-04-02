@@ -13,8 +13,6 @@
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-  <include layout="@layout/appbar_search" />
-
   <ProgressBar
     android:id="@+id/progress_view"
     android:layout_width="45dp"
@@ -23,6 +21,8 @@
     android:layout_marginTop="?android:attr/actionBarSize"
     android:visibility="gone"
     tools:visibility="visible"/>
+
+  <include layout="@layout/appbar_search" />
 
 </android.support.design.widget.CoordinatorLayout>
 

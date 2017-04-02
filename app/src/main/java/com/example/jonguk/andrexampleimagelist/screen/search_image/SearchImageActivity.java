@@ -16,7 +16,6 @@ import com.example.jonguk.andrexampleimagelist.screen.search_image.list.ImageLis
 import com.example.jonguk.andrexampleimagelist.util.keyboard.KeyboardUtils;
 import com.example.jonguk.andrexampleimagelist.util.network.HttpErrorHandler;
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
-import com.jakewharton.rxbinding.support.v7.widget.RecyclerViewScrollEvent;
 import com.jakewharton.rxbinding.support.v7.widget.RxRecyclerView;
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
@@ -27,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 import rx.Observable;
+import rx.subjects.BehaviorSubject;
 import rx.subscriptions.CompositeSubscription;
 
 public class SearchImageActivity extends BaseActivity {
@@ -67,16 +67,18 @@ public class SearchImageActivity extends BaseActivity {
         mAdapter = new ImageListAdapter();
         mSearchRequestHelper = new SearchImageRequestHelper(this, destroySignal());
 
-        if (savedInstanceState == null) {
-            mRecyclerView.setLayoutManager(mLayoutManager);
-            mRecyclerView.setAdapter(mAdapter);
-        } else {
+        boolean isDestroyed = savedInstanceState != null;
+        BehaviorSubject<Boolean> destorySubject = BehaviorSubject.create(isDestroyed);
+        if (isDestroyed) {
             mLayoutManager.onRestoreInstanceState(savedInstanceState.getParcelable(KEY_LAYOUT_MANAGER));
             mRecyclerView.setLayoutManager(mLayoutManager);
             mAdapter.initItems(Parcels.unwrap(savedInstanceState.getParcelable(KEY_ADAPTER_ITEMS)));
             mRecyclerView.setAdapter(mAdapter);
             mSearchRequestHelper.setQueryAndPageNo(savedInstanceState.getString(KEY_SEARCH_QUERY, ""),
                     savedInstanceState.getInt(KEY_SEARCH_PAGE_NO, 1));
+        } else {
+            mRecyclerView.setLayoutManager(mLayoutManager);
+            mRecyclerView.setAdapter(mAdapter);
         }
 
         // observe complete searching
@@ -91,47 +93,54 @@ public class SearchImageActivity extends BaseActivity {
         // observe scroll event
         mCompositeSubscription.add(RxRecyclerView.scrollEvents(mRecyclerView)
                 .takeUntil(destroySignal())
-                .map(RecyclerViewScrollEvent::dy)
+                .map(event -> event.dy())
                 .filter(dy -> dy > 0)
                 .map(dy -> mLayoutManager.findLastVisibleItemPosition() + NEXT_PAGE_POSITION)
                 .distinctUntilChanged()
                 .filter(position -> position > mAdapter.getItemCount())
-                .subscribe(position -> mSearchRequestHelper.nextPageRequest(
+                .subscribe(position -> mSearchRequestHelper.requestNextPage(
                         // handle error
                         new HttpErrorHandler((code, msg) ->
                                 showSnackBar(mLayout, "code:" + code + ", message:" + msg), 409),
 
                         // handle result
-                        mAdapter::addItems),
+                        list -> mAdapter.addItems(list)),
 
                         err -> Log.w(TAG, "RxRecyclerView.scrollEvents", err)));
 
-        // observe clear searching query
+        // observe clear query
         mCompositeSubscription.add(RxView.clicks(mSearchInputClearView)
                 .takeUntil(destroySignal())
                 .filter(v -> mSearchInputView != null)
                 .subscribe(v -> mSearchInputView.setText(""), err ->
                         Log.w(TAG, "RxView.clicks - searchInputClearView", err)));
 
-        // observe query changed event and searching action
-        Observable<String> textChangeObs = RxTextView.afterTextChangeEvents(mSearchInputView)
-                .takeUntil(destroySignal())
-                .debounce(1, TimeUnit.SECONDS)
-                .filter(event -> event != null && event.editable() != null)
-                .map(event -> event.editable().toString());
-
+        // observe query changed event and search action
         Observable<String> editorActionObs = RxTextView.editorActionEvents(mSearchInputView)
                 .takeUntil(destroySignal())
                 .filter(action -> action.actionId() == EditorInfo.IME_ACTION_SEARCH)
-                .map(event -> event.view().getText().toString());
+                .map(event -> event.view().getText().toString())
+                .flatMap(query -> {
+                    destorySubject.onNext(false);
+                    return Observable.just(query);
+                })
+                .filter(query -> !TextUtils.isEmpty(query));
 
-        mCompositeSubscription.add(Observable.amb(textChangeObs, editorActionObs)
+        Observable<String> textChangeObs = RxTextView.afterTextChangeEvents(mSearchInputView)
                 .takeUntil(destroySignal())
-                .onBackpressureBuffer()
-                .observeOn(ThreadHelper.io())
-                .filter(query -> !TextUtils.isEmpty(query) &&
-                        !query.equals(mSearchRequestHelper.getQuery()))
-                .subscribe(query -> mSearchRequestHelper.firstPageRequest(query,
+                .debounce(1L, TimeUnit.SECONDS)
+                .filter(event -> event != null && event.editable() != null)
+                .map(event -> event.editable().toString())
+                .flatMap(query -> {
+                    destorySubject.onNext(false);
+                    return Observable.just(query);
+                })
+                .filter(query -> !TextUtils.isEmpty(query) && !query.equals(mSearchRequestHelper.getQuery()));
+
+        mCompositeSubscription.add(Observable.merge(editorActionObs, textChangeObs)
+                .takeUntil(destroySignal())
+                .flatMap(query -> destorySubject.take(1).filter(b -> !b).flatMap(b -> Observable.just(query)))
+                .subscribe(query -> mSearchRequestHelper.requestFirstPage(query,
                         // handle before search
                         () -> {
                             mAdapter.clear();
@@ -151,7 +160,7 @@ public class SearchImageActivity extends BaseActivity {
                         }),
 
                         // handle result
-                        mAdapter::initItems),
+                        list -> mAdapter.initItems(list)),
 
                         err -> Log.w(TAG, "changedText and search action", err)));
     }

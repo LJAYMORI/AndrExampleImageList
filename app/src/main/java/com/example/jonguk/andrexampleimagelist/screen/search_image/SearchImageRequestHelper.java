@@ -10,6 +10,7 @@ import com.example.jonguk.andrexampleimagelist.json.search_image.SearchImageJson
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
 import rx.Observable;
@@ -52,7 +53,7 @@ class SearchImageRequestHelper {
         mPageNo = pageno;
     }
 
-    void firstPageRequest(@NonNull String query,
+    void requestFirstPage(@NonNull String query,
                           @NonNull Action0 preCallback,
                           @NonNull Action0 completeCallback,
                           @NonNull Action1<Throwable> errorCallback,
@@ -64,30 +65,24 @@ class SearchImageRequestHelper {
                 .observeOn(ThreadHelper.mainThread())
                 .doOnCompleted(completeCallback)
                 .doOnError(errorCallback)
-                .subscribe(resultCallback, err -> Log.w(TAG, "firstPageRequest", err));
+                .subscribe(resultCallback, err -> Log.w(TAG, "requestFirstPage", err));
     }
 
-    void nextPageRequest(@NonNull Action1<Throwable> errorCallback,
+    void requestNextPage(@NonNull Action1<Throwable> errorCallback,
                          @NonNull Action1<List<SearchImageJson>> resultCallback) {
         request(mQuery, mPageNo + 1).takeUntil(mDestroySignal)
                 .subscribeOn(ThreadHelper.mainThread())
                 .observeOn(ThreadHelper.mainThread())
                 .doOnError(errorCallback)
                 .subscribe(resultCallback, err ->
-                        Log.w(TAG, "nextPageRequest - query :" + mQuery + ", pageNo:" + mPageNo, err));
-    }
-
-    Observable<List<SearchImageJson>> retry() {
-        return request(mQuery, mPageNo);
+                        Log.w(TAG, "requestNextPage - query :" + mQuery + ", pageNo:" + mPageNo, err));
     }
 
     private Observable<List<SearchImageJson>> request(String query, int pageNo) {
         return mInRequestSubject.take(1).flatMap(isRequest -> {
             Context context = mContextRef.get();
-            if (isRequest || context == null || TextUtils.isEmpty(query) ||
-                    (query.equals(mQuery) && pageNo < mPageNo)) {
-                return Observable.empty();
-
+            if (isRequest || context == null || TextUtils.isEmpty(query)) {
+                return Observable.just(new ArrayList<>());
             } else {
                 return SearchImageRequest.images(context, query, pageNo)
                         .map(response -> response.channel.item)
@@ -108,7 +103,7 @@ class SearchImageRequestHelper {
     }
 
     Observable<Boolean> noItemsObservable() {
-        return mNoItemsSubject;
+        return mNoItemsSubject.asObservable();
     }
 
 }
