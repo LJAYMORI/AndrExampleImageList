@@ -49,7 +49,7 @@ public class HttpErrorHandler implements Action1<Throwable> {
             }
 
         } else {
-            mCallback.call(CODE_UNKNOWN, "Unknown");
+            mCallback.call(CODE_UNKNOWN, throwable.getMessage());
         }
     }
 }

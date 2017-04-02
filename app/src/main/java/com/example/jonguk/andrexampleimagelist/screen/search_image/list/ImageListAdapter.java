@@ -22,6 +22,10 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
 
     private String mQuery;
 
+    public List<SearchImageJson> getItems() {
+        return mItems;
+    }
+
     public void setQuery(@NonNull String query) {
         this.mQuery = query;
     }
@@ -58,4 +62,5 @@ public class ImageListAdapter extends RecyclerView.Adapter<ImageViewHolder> {
     public int getItemCount() {
         return mItems.size();
     }
+
 }

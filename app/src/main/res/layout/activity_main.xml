@@ -1,37 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
-	xmlns:app="http://schemas.android.com/apk/res-auto"
-	xmlns:tools="http://schemas.android.com/tools"
-	android:id="@+id/coordinator_layout"
-	android:layout_width="match_parent"
-	android:layout_height="match_parent"
-	tools:context="com.example.jonguk.andrexampleimagelist.screen.search_image.SearchImageActivity">
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools"
+  android:id="@+id/coordinator_layout"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  tools:context="com.example.jonguk.andrexampleimagelist.screen.search_image.SearchImageActivity">
 
-	<android.support.v7.widget.RecyclerView
-		android:id="@+id/recycler_view"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+  <android.support.v7.widget.RecyclerView
+    android:id="@+id/recycler_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-	<include layout="@layout/appbar_search" />
+  <ProgressBar
+    android:id="@+id/progress_view"
+    android:layout_width="45dp"
+    android:layout_height="45dp"
+    android:layout_gravity="center"
+    android:layout_marginTop="?android:attr/actionBarSize"
+    android:visibility="gone"
+    tools:visibility="visible"/>
 
-	<FrameLayout
-		android:id="@+id/progress_layout"
-		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		android:layout_below="@+id/appbar_layout"
-		android:background="#5000"
-		android:visibility="gone"
-		android:layout_marginTop="?attr/actionBarSize"
-		android:clickable="true"
-		tools:visibility="visible">
-
-		<ProgressBar
-			android:layout_width="80dp"
-			android:layout_height="80dp"
-			android:layout_gravity="center" />
-
-	</FrameLayout>
+  <include layout="@layout/appbar_search" />
 
 </android.support.design.widget.CoordinatorLayout>
 

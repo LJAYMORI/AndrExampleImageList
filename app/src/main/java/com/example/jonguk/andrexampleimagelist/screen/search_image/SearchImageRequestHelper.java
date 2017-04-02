@@ -1,14 +1,16 @@
 package com.example.jonguk.andrexampleimagelist.screen.search_image;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.example.jonguk.andrexampleimagelist.common.activity.RxActivity;
 import com.example.jonguk.andrexampleimagelist.json.search_image.SearchImageJson;
-import com.example.jonguk.andrexampleimagelist.screen.search_image.list.ImageListAdapter;
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
 
 import rx.Observable;
@@ -26,24 +28,36 @@ class SearchImageRequestHelper {
     private final BehaviorSubject<Boolean> mInRequestSubject = BehaviorSubject.create(false);
     private final BehaviorSubject<Boolean> mNoItemsSubject = BehaviorSubject.create(false);
 
-    private final Context mContext;
+    private final WeakReference<Context> mContextRef;
     private final Observable<RxActivity.ActivityLifecycleEvent> mDestroySignal;
-    private final ImageListAdapter mAdapter;
 
     private int mPageNo;
     private String mQuery;
 
-    SearchImageRequestHelper(Context context, ImageListAdapter adapter,
+    SearchImageRequestHelper(Context context,
                              Observable<RxActivity.ActivityLifecycleEvent> destroySignal) {
-        mContext = context;
-        mAdapter = adapter;
+        mContextRef = new WeakReference<>(context);
         mDestroySignal = destroySignal;
     }
 
-    void firstPageRequest(String query,
-                          Action0 preCallback,
-                          Action0 completeCallback,
-                          Action1<Throwable> errorCallback) {
+    String getQuery() {
+        return mQuery;
+    }
+
+    int getPageNo() {
+        return mPageNo;
+    }
+
+    void setQueryAndPageNo(String query, int pageno) {
+        mQuery = query;
+        mPageNo = pageno;
+    }
+
+    void requestFirstPage(@NonNull String query,
+                          @NonNull Action0 preCallback,
+                          @NonNull Action0 completeCallback,
+                          @NonNull Action1<Throwable> errorCallback,
+                          @NonNull Action1<List<SearchImageJson>> resultCallback) {
 
         request(query, 1).takeUntil(mDestroySignal)
                 .doOnSubscribe(preCallback)
@@ -51,33 +65,28 @@ class SearchImageRequestHelper {
                 .observeOn(ThreadHelper.mainThread())
                 .doOnCompleted(completeCallback)
                 .doOnError(errorCallback)
-                .subscribe(mAdapter::initItems, err -> Log.w(TAG, "firstPageRequest", err));
+                .subscribe(resultCallback, err -> Log.w(TAG, "requestFirstPage", err));
     }
 
-    void nextPageRequest(Action1<Throwable> errorCallback) {
+    void requestNextPage(@NonNull Action1<Throwable> errorCallback,
+                         @NonNull Action1<List<SearchImageJson>> resultCallback) {
         request(mQuery, mPageNo + 1).takeUntil(mDestroySignal)
                 .subscribeOn(ThreadHelper.mainThread())
                 .observeOn(ThreadHelper.mainThread())
                 .doOnError(errorCallback)
-                .subscribe(mAdapter::addItems, err ->
-                        Log.w(TAG, "nextPageRequest - query :" + mQuery + ", pageNo:" + mPageNo,
-                                err));
-    }
-
-    Observable<List<SearchImageJson>> retry() {
-        return request(mQuery, mPageNo);
+                .subscribe(resultCallback, err ->
+                        Log.w(TAG, "requestNextPage - query :" + mQuery + ", pageNo:" + mPageNo, err));
     }
 
     private Observable<List<SearchImageJson>> request(String query, int pageNo) {
         return mInRequestSubject.take(1).flatMap(isRequest -> {
-            if (isRequest) {
-                return Observable.empty();
+            Context context = mContextRef.get();
+            if (isRequest || context == null || TextUtils.isEmpty(query)) {
+                return Observable.just(new ArrayList<>());
             } else {
-                return TextUtils.isEmpty(query) || (query.equals(mQuery) && pageNo == mPageNo) ?
-                        Observable.empty() : SearchImageRequest.images(mContext, query, pageNo)
+                return SearchImageRequest.images(context, query, pageNo)
                         .map(response -> response.channel.item)
                         .doOnSubscribe(() -> {
-                            mNoItemsSubject.onNext(false);
                             mInRequestSubject.onNext(true);
                         })
                         .doOnError(err -> {
@@ -85,19 +94,16 @@ class SearchImageRequestHelper {
                             mInRequestSubject.onNext(false);
                         })
                         .doOnNext(list -> {
+                            setQueryAndPageNo(query, pageNo);
                             mNoItemsSubject.onNext(list == null || list.size() < 1);
                             mInRequestSubject.onNext(false);
-                        })
-                        .doOnCompleted(() -> {
-                            mQuery = query;
-                            mPageNo = pageNo;
                         });
             }
         });
     }
 
     Observable<Boolean> noItemsObservable() {
-        return mNoItemsSubject;
+        return mNoItemsSubject.asObservable();
     }
 
 }
