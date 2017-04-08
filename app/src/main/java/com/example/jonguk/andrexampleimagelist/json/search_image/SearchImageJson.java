@@ -1,13 +1,14 @@
 package com.example.jonguk.andrexampleimagelist.json.search_image;
 
-import org.parceler.Parcel;
+import android.util.Log;
 
 /**
  * Created by Jonguk on 2017. 3. 28..
  */
 
-@Parcel
 public class SearchImageJson {
+    private static final String TAG = "SearchImageJson";
+
     public String pubDate;
     public String title;
     public String thumbnail;
@@ -18,7 +19,18 @@ public class SearchImageJson {
     public String cp;
     public String cpname;
 
-    public SearchImageJson() {}
+    @Override
+    public boolean equals(Object obj) {
+        try {
+            SearchImageJson json = (SearchImageJson) obj;
+            return pubDate.equals(json.pubDate) && title.equals(json.title)
+                    && image.equals(json.image) && link.equals(json.link);
+
+        } catch (Exception e) {
+            Log.w(TAG, "equals", e);
+            return false;
+        }
+    }
 
     @Override
     public String toString() {

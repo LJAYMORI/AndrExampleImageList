@@ -6,7 +6,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.example.jonguk.andrexampleimagelist.common.activity.RxActivity;
-import com.example.jonguk.andrexampleimagelist.json.search_image.SearchImageJson;
+import com.example.jonguk.andrexampleimagelist.screen.search_image.list.data.ImageData;
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
 
 import java.lang.ref.WeakReference;
@@ -57,7 +57,7 @@ class SearchImageRequestHelper {
                           @NonNull Action0 preCallback,
                           @NonNull Action0 completeCallback,
                           @NonNull Action1<Throwable> errorCallback,
-                          @NonNull Action1<List<SearchImageJson>> resultCallback) {
+                          @NonNull Action1<List<ImageData>> resultCallback) {
 
         request(query, 1).takeUntil(mDestroySignal)
                 .doOnSubscribe(preCallback)
@@ -69,7 +69,7 @@ class SearchImageRequestHelper {
     }
 
     void requestNextPage(@NonNull Action1<Throwable> errorCallback,
-                         @NonNull Action1<List<SearchImageJson>> resultCallback) {
+                         @NonNull Action1<List<ImageData>> resultCallback) {
         request(mQuery, mPageNo + 1).takeUntil(mDestroySignal)
                 .subscribeOn(ThreadHelper.mainThread())
                 .observeOn(ThreadHelper.mainThread())
@@ -78,14 +78,14 @@ class SearchImageRequestHelper {
                         Log.w(TAG, "requestNextPage - query :" + mQuery + ", pageNo:" + mPageNo, err));
     }
 
-    private Observable<List<SearchImageJson>> request(String query, int pageNo) {
+    private Observable<List<ImageData>> request(String query, int pageNo) {
         return mInRequestSubject.take(1).flatMap(isRequest -> {
             Context context = mContextRef.get();
             if (isRequest || context == null || TextUtils.isEmpty(query)) {
                 return Observable.just(new ArrayList<>());
             } else {
                 return SearchImageRequest.images(context, query, pageNo)
-                        .map(response -> response.channel.item)
+                        .map(response -> ImageData.convertToItemDataList(response.channel.item))
                         .doOnSubscribe(() -> {
                             mInRequestSubject.onNext(true);
                         })

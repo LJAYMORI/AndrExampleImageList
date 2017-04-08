@@ -86,9 +86,11 @@ public class SearchImageActivity extends BaseActivity {
                 .takeUntil(destroySignal())
                 .filter(hasNoItems -> hasNoItems)
                 .observeOn(ThreadHelper.mainThread())
-                .subscribe(b ->
-                        showSnackBar(mLayout, getStringWithoutException(R.string.search_complete)),
-                        err -> Log.w(TAG, "SearchRequestHelper.noItemsObservable", err)));
+                .subscribe(b -> {
+                    mAdapter.removeLoading();
+                    mAdapter.addCompleteMessage();
+                    mAdapter.notifyDataSetChanged();
+                }, err -> Log.w(TAG, "SearchRequestHelper.noItemsObservable", err)));
 
         // observe scroll event
         mCompositeSubscription.add(RxRecyclerView.scrollEvents(mRecyclerView)
