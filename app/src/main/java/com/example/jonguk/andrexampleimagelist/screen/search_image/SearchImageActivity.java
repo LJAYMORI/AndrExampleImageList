@@ -2,6 +2,7 @@ package com.example.jonguk.andrexampleimagelist.screen.search_image;
 
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
@@ -16,6 +17,7 @@ import com.example.jonguk.andrexampleimagelist.screen.search_image.list.ImageLis
 import com.example.jonguk.andrexampleimagelist.util.keyboard.KeyboardUtils;
 import com.example.jonguk.andrexampleimagelist.util.network.HttpErrorHandler;
 import com.example.jonguk.andrexampleimagelist.util.thread.ThreadHelper;
+import com.jakewharton.rxbinding.support.v4.widget.RxSwipeRefreshLayout;
 import com.jakewharton.rxbinding.support.v7.widget.RxRecyclerView;
 import com.jakewharton.rxbinding.view.RxView;
 import com.jakewharton.rxbinding.widget.RxTextView;
@@ -42,6 +44,8 @@ public class SearchImageActivity extends BaseActivity {
 
     @BindView(R.id.coordinator_layout)
     CoordinatorLayout mLayout;
+    @BindView(R.id.refresh_layout)
+    SwipeRefreshLayout mRefreshLayout;
     @BindView(R.id.recycler_view)
     RecyclerView mRecyclerView;
     @BindView(R.id.appbar_search_input)
@@ -63,9 +67,12 @@ public class SearchImageActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        Observable<ActivityLifecycleEvent> fragmentDestroySignal = destroySignal();
+
+        mRefreshLayout.setColorSchemeResources(R.color.colorAccent);
         mLayoutManager = new LinearLayoutManager(this);
         mAdapter = new ImageListAdapter();
-        mSearchRequestHelper = new SearchImageRequestHelper(this, destroySignal());
+        mSearchRequestHelper = new SearchImageRequestHelper(this, fragmentDestroySignal);
 
         boolean isDestroyed = savedInstanceState != null;
         BehaviorSubject<Boolean> destorySubject = BehaviorSubject.create(isDestroyed);
@@ -83,7 +90,7 @@ public class SearchImageActivity extends BaseActivity {
 
         // observe complete searching
         mCompositeSubscription.add(mSearchRequestHelper.noItemsObservable()
-                .takeUntil(destroySignal())
+                .takeUntil(fragmentDestroySignal)
                 .filter(hasNoItems -> hasNoItems)
                 .observeOn(ThreadHelper.mainThread())
                 .subscribe(b -> {
@@ -94,7 +101,7 @@ public class SearchImageActivity extends BaseActivity {
 
         // observe scroll event
         mCompositeSubscription.add(RxRecyclerView.scrollEvents(mRecyclerView)
-                .takeUntil(destroySignal())
+                .takeUntil(fragmentDestroySignal)
                 .map(event -> event.dy())
                 .filter(dy -> dy > 0)
                 .map(dy -> mLayoutManager.findLastVisibleItemPosition() + NEXT_PAGE_POSITION)
@@ -112,14 +119,14 @@ public class SearchImageActivity extends BaseActivity {
 
         // observe clear query
         mCompositeSubscription.add(RxView.clicks(mSearchInputClearView)
-                .takeUntil(destroySignal())
+                .takeUntil(fragmentDestroySignal)
                 .filter(v -> mSearchInputView != null)
                 .subscribe(v -> mSearchInputView.setText(""), err ->
                         Log.w(TAG, "RxView.clicks - searchInputClearView", err)));
 
         // observe query changed event and search action
         Observable<String> editorActionObs = RxTextView.editorActionEvents(mSearchInputView)
-                .takeUntil(destroySignal())
+                .takeUntil(fragmentDestroySignal)
                 .filter(action -> action.actionId() == EditorInfo.IME_ACTION_SEARCH)
                 .map(event -> event.view().getText().toString())
                 .flatMap(query -> {
@@ -129,7 +136,7 @@ public class SearchImageActivity extends BaseActivity {
                 .filter(query -> !TextUtils.isEmpty(query));
 
         Observable<String> textChangeObs = RxTextView.afterTextChangeEvents(mSearchInputView)
-                .takeUntil(destroySignal())
+                .takeUntil(fragmentDestroySignal)
                 .debounce(1L, TimeUnit.SECONDS)
                 .filter(event -> event != null && event.editable() != null)
                 .map(event -> event.editable().toString())
@@ -139,8 +146,13 @@ public class SearchImageActivity extends BaseActivity {
                 })
                 .filter(query -> !TextUtils.isEmpty(query) && !query.equals(mSearchRequestHelper.getQuery()));
 
-        mCompositeSubscription.add(Observable.merge(editorActionObs, textChangeObs)
-                .takeUntil(destroySignal())
+        Observable<String> refreshObs = RxSwipeRefreshLayout.refreshes(mRefreshLayout)
+                .takeUntil(fragmentDestroySignal)
+                .map(v -> mSearchInputView.getText().toString())
+                .filter(query -> !TextUtils.isEmpty(query));
+
+        mCompositeSubscription.add(Observable.merge(editorActionObs, textChangeObs, refreshObs)
+                .takeUntil(fragmentDestroySignal)
                 .flatMap(query -> destorySubject.take(1).filter(b -> !b).flatMap(b -> Observable.just(query)))
                 .subscribe(query -> mSearchRequestHelper.requestFirstPage(query,
                         // handle before search
@@ -151,12 +163,14 @@ public class SearchImageActivity extends BaseActivity {
 
                         // handle complete search
                         () -> {
+                            mRefreshLayout.setRefreshing(false);
                             mProgressLayout.setVisibility(View.GONE);
                             KeyboardUtils.hide(mSearchInputView);
                         },
 
                         // handle error search
                         new HttpErrorHandler((code, msg) -> {
+                            mRefreshLayout.setRefreshing(false);
                             mProgressLayout.setVisibility(View.GONE);
                             showSnackBar(mLayout, "code:" + code + ", msg:" + msg);
                         }),
