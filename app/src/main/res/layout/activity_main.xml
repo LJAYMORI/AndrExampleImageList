@@ -27,7 +27,7 @@
     android:layout_gravity="center"
     android:layout_marginTop="?android:attr/actionBarSize"
     android:visibility="gone"
-    tools:visibility="visible"/>
+    tools:visibility="visible" />
 
   <include layout="@layout/appbar_search" />
 

@@ -18,6 +18,9 @@ import com.example.jonguk.andrexampleimagelist.screen.search_image.list.viewhold
 import java.util.LinkedList;
 import java.util.List;
 
+import rx.Observable;
+import rx.subjects.BehaviorSubject;
+
 /**
  * Created by Jonguk on 2017. 3. 30..
  */
@@ -34,13 +37,20 @@ public class ImageListAdapter extends RecyclerView.Adapter<AbsViewHolder> {
         return mItems;
     }
 
+    private final BehaviorSubject<Integer> mItemCountObservable = BehaviorSubject.create(0);
+
     public void initItems(@NonNull List<ImageData> list) {
             /*final ImageListDiffCallback diffCallback = new ImageListDiffCallback(mItems, list);
             final DiffUtil.DiffResult diffResult = DiffUtil.calculateDiff(diffCallback);*/
         mItems.clear();
         mItems.addAll(list);
-        addLoading();
+        if (list.size() > 0) {
+            addLoading();
+        } else {
+            addCompleteMessage();
+        }
         notifyDataSetChanged();
+        mItemCountObservable.onNext(getItemCount());
     }
 
     public void addItems(@NonNull List<? extends AbsSearchImageData> list) {
@@ -50,11 +60,13 @@ public class ImageListAdapter extends RecyclerView.Adapter<AbsViewHolder> {
         mItems.addAll(list);
         addLoading();
         notifyDataSetChanged();
+        mItemCountObservable.onNext(getItemCount());
     }
 
     public void clear() {
         mItems.clear();
         notifyDataSetChanged();
+        mItemCountObservable.onNext(getItemCount());
     }
 
     public void addCompleteMessage() {
@@ -114,6 +126,10 @@ public class ImageListAdapter extends RecyclerView.Adapter<AbsViewHolder> {
     @Override
     public int getItemCount() {
         return mItems.size();
+    }
+
+    public Observable<Integer> getItemCountObservable() {
+        return mItemCountObservable.asObservable();
     }
 
 }

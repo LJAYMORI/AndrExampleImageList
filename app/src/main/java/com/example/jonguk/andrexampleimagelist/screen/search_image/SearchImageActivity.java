@@ -88,6 +88,16 @@ public class SearchImageActivity extends BaseActivity {
             mRecyclerView.setAdapter(mAdapter);
         }
 
+
+        // observe change item count
+        mCompositeSubscription.add(mAdapter.getItemCountObservable()
+                .takeUntil(fragmentDestroySignal)
+                .map(count -> count > 1)
+                .subscribe(flag -> {
+                    mRecyclerView.setNestedScrollingEnabled(flag);
+                    mRefreshLayout.setEnabled(flag);
+                }, err -> Log.w(TAG, "itemCountObs", err)));
+
         // observe complete searching
         mCompositeSubscription.add(mSearchRequestHelper.noItemsObservable()
                 .takeUntil(fragmentDestroySignal)
@@ -124,7 +134,7 @@ public class SearchImageActivity extends BaseActivity {
                 .subscribe(v -> mSearchInputView.setText(""), err ->
                         Log.w(TAG, "RxView.clicks - searchInputClearView", err)));
 
-        // observe query changed event and search action
+        // observe query changed event, search action and swipe refresh event
         Observable<String> editorActionObs = RxTextView.editorActionEvents(mSearchInputView)
                 .takeUntil(fragmentDestroySignal)
                 .filter(action -> action.actionId() == EditorInfo.IME_ACTION_SEARCH)
