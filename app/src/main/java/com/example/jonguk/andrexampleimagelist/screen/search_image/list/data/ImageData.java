@@ -2,6 +2,8 @@ package com.example.jonguk.andrexampleimagelist.screen.search_image.list.data;
 
 import com.example.jonguk.andrexampleimagelist.json.search_image.SearchImageJson;
 
+import org.parceler.Parcel;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -9,11 +11,14 @@ import java.util.List;
  * Created by Jonguk on 2017. 4. 8..
  */
 
+@Parcel
 public class ImageData extends AbsSearchImageData {
 
     public String imageUrl;
     public float imageWidth;
     public float imageHeight;
+
+    public ImageData() {}
 
     @Override
     public Type getType() {
